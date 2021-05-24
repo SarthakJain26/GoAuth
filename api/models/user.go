@@ -21,12 +21,14 @@ type User struct {
 // HashPassword hashes password from user input
 
 func HashPassword(password string) (string, error) {
+
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14) // 14 is the cost for hashing the password
 	return string(bytes), err
 }
 
 // CheckPasswordHash checks password hash and password from user input if they match
 func CheckPasswordHash(password, hash string) error {
+
 	err := bcrypt.CompareHashAndPassword([]byte(password), []byte(hash))
 	if err != nil {
 		return errors.New("password incorrect")
@@ -36,6 +38,7 @@ func CheckPasswordHash(password, hash string) error {
 
 // BeforeSave hashes user password
 func (u *User) BeforeSave() error {
+
 	password := strings.TrimSpace(u.Password)
 	hashedPassword, err := HashPassword(password)
 	if err != nil {
@@ -47,6 +50,7 @@ func (u *User) BeforeSave() error {
 
 // Prepare strips user inputs of any white spaces
 func (u *User) Prepare() {
+
 	u.Email = strings.TrimSpace(u.Email)
 	u.Fname = strings.TrimSpace(u.Fname)
 	u.Lname = strings.TrimSpace(u.Lname)
@@ -55,6 +59,7 @@ func (u *User) Prepare() {
 
 // Validate user input
 func (u *User) Validate(action string) error {
+
 	switch strings.ToLower(action) {
 	case "login":
 		if u.Email == "" {
@@ -84,6 +89,7 @@ func (u *User) Validate(action string) error {
 
 // SaveUser adds a user to the database
 func (u *User) SaveUser(db *gorm.DB) (*User, error) {
+
 	var err error
 
 	// Debug a single operation, show detailed log for this operation
@@ -96,6 +102,7 @@ func (u *User) SaveUser(db *gorm.DB) (*User, error) {
 
 // GetUser returns a user based on email
 func (u *User) GetUser(db *gorm.DB) (*User, error) {
+
 	account := &User{}
 	if err := db.Debug().Table("users").Where("email = ?", u.Email).First(account).Error; err != nil {
 		return nil, err
@@ -110,4 +117,69 @@ func GetAllUsers(db *gorm.DB) (*[]User, error) {
 		return &[]User{}, err
 	}
 	return &users, nil
+}
+
+// UpdateUser updates the details of user
+func (u *User) UpdateUser(db *gorm.DB) (*User, error) {
+
+	// Check if user exists and return nil,err if user does not exist
+	user, err := u.GetUser(db)
+	if err != nil {
+		return nil, err
+	}
+
+	// Updating user and return user,nil
+	user.Email = u.Email
+	user.Fname = u.Fname
+	user.Lname = u.Lname
+	user.Password = u.Password
+	user.ProfileImage = u.ProfileImage
+
+	if err := db.Debug().Save(user).Error; err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (u *User) DeleteOrDeactivateUser(db *gorm.DB, isDelete bool) error {
+	// Check if user exists and returning nill if it dosen't
+	// Rejecting below code since it violates DRY principle
+	// if err := db.Table("users").Where("email = ?", u.Email).First(user).Error; err != nil {
+	// 	return err
+	// }
+
+	// Check if user exists and returning nill if it dosen't
+	user, err := u.GetUser(db)
+	if err != nil {
+		return err
+	}
+
+	if isDelete == true {
+		err = db.Debug().Unscoped().Delete(user).Error
+	} else {
+		err = db.Debug().Delete(user).Error
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeactivateUser sets the deleted at field to the time it is deactivated
+func (u *User) DeactivateUser(db *gorm.DB) error {
+
+	// Check if user exists and returning nill if it dosen't
+	user, err := u.GetUser(db)
+	if err != nil {
+		return err
+	}
+
+	// Removing the user and returning nil
+	if err := db.Debug().Delete(user).Error; err != nil {
+		return err
+	}
+	return nil
 }

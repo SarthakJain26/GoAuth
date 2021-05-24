@@ -108,3 +108,74 @@ func (a *App) Login(w http.ResponseWriter, r *http.Request) {
 	responses.JSON(w, http.StatusOK, resp)
 	return
 }
+
+// UpdateUserController updates users details
+func (a *App) UpdateUserController(w http.ResponseWriter, r *http.Request) {
+	// Default response
+	var resp = map[string]interface{}{"status": "success", "message": "Details updated Successfully"}
+
+	// Read request from user and check if the request is valid
+	body, err := ioutil.ReadAll(r.Body)
+	// If not vaild return suitable response
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	user := &models.User{}
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// If valid, update the user details and return a suitable response
+	user, err = user.UpdateUser(a.DB)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	resp["user"] = user
+	responses.JSON(w, http.StatusOK, resp)
+	return
+}
+
+// DeactivateUserController deactivates users account
+func (a *App) DeleteOrDeactivateUserController(w http.ResponseWriter, r *http.Request) {
+	// Default response
+	var resp = map[string]interface{}{"status": "success", "message": "User deactivated successfully"}
+
+	// Read request from user and check if the request is valid
+	body, err := ioutil.ReadAll(r.Body) // read user input from request
+	// If not vaild return suitable response
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	user := &models.User{}
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// Fetching route from URL
+	reqURL := r.URL.String()
+	isDelete := reqURL == "/delete"
+	if isDelete {
+		resp["message"] = "User deleted successfully"
+	}
+
+	// If valid, update the user details and return a suitable response
+	err = user.DeleteOrDeactivateUser(a.DB, isDelete)
+	if err != nil {
+		responses.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	responses.JSON(w, http.StatusOK, resp)
+	return
+
+}

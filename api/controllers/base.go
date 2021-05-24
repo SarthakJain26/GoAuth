@@ -43,6 +43,9 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/", home).Methods("GET")
 	a.Router.HandleFunc("/register", a.UserSignUp).Methods("POST")
 	a.Router.HandleFunc("/login", a.Login).Methods("POST")
+	a.Router.HandleFunc("/update", a.UpdateUserController).Methods("PUT")
+	a.Router.HandleFunc("/delete", a.DeleteOrDeactivateUserController).Methods("DELETE")
+	a.Router.HandleFunc("/deactivate", a.DeleteOrDeactivateUserController).Methods("DELETE")
 }
 
 func (a *App) RunServer() {
